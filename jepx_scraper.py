@@ -44,17 +44,6 @@ class JEPX:
         else:
             print(f"Failed to download CSV: {url}")
 
-    def download_bid_and_area_csv(self, date: str):
-        try:
-            self._navigate_spot_page(date=date, item="bid_curves")
-            self._download_csv("spot_bid_curves", date, f"spot_bid_curves_{date.replace('/', '')}.csv")
-            self._download_csv("spot_splitting_areas", date, f"spot_splitting_areas_{date.replace('/', '')}.csv")
-        finally:
-            if self.browser:
-                self.browser.close()
-            if self.playwright:
-                self.playwright.stop()
-
     def _navigate_spot_page(self, date: str, debug=False, accept_downloads=False, item: str = "spot"):
         """
         Navigate to the JEPX spot market page, set a specific date, and select 'All Areas'.
