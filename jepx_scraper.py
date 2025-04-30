@@ -1,78 +1,8 @@
-import os
-import json
+
 import time
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-from datetime import timedelta
-import numpy as np
 from playwright.sync_api import sync_playwright
-
-
-
-def extract_bid_curves_from_svg(svg_text: str):
-    import pandas as pd
-    from bs4 import BeautifulSoup
-
-    def extract_path_d(d_attr):
-        points = []
-        for segment in d_attr.split("L"):
-            segment = segment.replace("M", "").strip()
-            try:
-                x_str, y_str = segment.split()
-                x, y = float(x_str), float(y_str)
-                points.append((x, y))
-            except ValueError:
-                continue
-        return pd.DataFrame(points, columns=["x", "y"])
-
-    soup = BeautifulSoup(svg_text, "html.parser")
-    paths = soup.select("path.highcharts-graph")
-
-    sell_df = extract_path_d(paths[0]["d"]) if len(paths) > 0 else pd.DataFrame()
-    buy_df = extract_path_d(paths[1]["d"]) if len(paths) > 1 else pd.DataFrame()
-
-    return sell_df, buy_df
-
-def convert_svg_x_to_mw(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Convert SVG x-coordinates to actual MW using known tick mapping.
-    Assumes a linear scale between SVG x and MW:
-        SVG 60.5  ->  0 MW
-        SVG 216.5 -> 20000 MW
-        SVG 373.5 -> 40000 MW
-        SVG 529.5 -> 60000 MW
-    """
-    x_svg = [60.5, 216.5, 373.5, 529.5]
-    x_mw = [0, 20000, 40000, 60000]
-
-    # Fit linear relationship: MW = a * x_svg + b
-    coeffs = np.polyfit(x_svg, x_mw, 1)  # returns [a, b]
-    a, b = coeffs
-
-    df = df.copy()
-    df["MW"] = df["x"] * a + b
-    return df
-
-def convert_svg_y_to_price(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Convert SVG y-coordinates to price in 円/kWh using linear mapping:
-        SVG 275.5 -> 0 円
-        SVG 214.5 -> 100 円
-        SVG 152.5 -> 200 円
-        SVG 90.5  -> 300 円
-    """
-    y_svg = [275.5, 214.5, 152.5, 90.5]
-    y_price = [0, 100, 200, 300]
-
-    # Linear fit: price = a * y_svg + b
-    coeffs = np.polyfit(y_svg, y_price, 1)  # returns [a, b]
-    a, b = coeffs
-
-    df = df.copy()
-    df["Price"] = df["y"] * a + b
-    return df
-
 
 class JEPX:
     def __init__(self):
