@@ -2,9 +2,77 @@ import os
 import json
 import time
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 from datetime import timedelta
+import numpy as np
 from playwright.sync_api import sync_playwright
+
+
+
+def extract_bid_curves_from_svg(svg_text: str):
+    import pandas as pd
+    from bs4 import BeautifulSoup
+
+    def extract_path_d(d_attr):
+        points = []
+        for segment in d_attr.split("L"):
+            segment = segment.replace("M", "").strip()
+            try:
+                x_str, y_str = segment.split()
+                x, y = float(x_str), float(y_str)
+                points.append((x, y))
+            except ValueError:
+                continue
+        return pd.DataFrame(points, columns=["x", "y"])
+
+    soup = BeautifulSoup(svg_text, "html.parser")
+    paths = soup.select("path.highcharts-graph")
+
+    sell_df = extract_path_d(paths[0]["d"]) if len(paths) > 0 else pd.DataFrame()
+    buy_df = extract_path_d(paths[1]["d"]) if len(paths) > 1 else pd.DataFrame()
+
+    return sell_df, buy_df
+
+def convert_svg_x_to_mw(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert SVG x-coordinates to actual MW using known tick mapping.
+    Assumes a linear scale between SVG x and MW:
+        SVG 60.5  ->  0 MW
+        SVG 216.5 -> 20000 MW
+        SVG 373.5 -> 40000 MW
+        SVG 529.5 -> 60000 MW
+    """
+    x_svg = [60.5, 216.5, 373.5, 529.5]
+    x_mw = [0, 20000, 40000, 60000]
+
+    # Fit linear relationship: MW = a * x_svg + b
+    coeffs = np.polyfit(x_svg, x_mw, 1)  # returns [a, b]
+    a, b = coeffs
+
+    df = df.copy()
+    df["MW"] = df["x"] * a + b
+    return df
+
+def convert_svg_y_to_price(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert SVG y-coordinates to price in 円/kWh using linear mapping:
+        SVG 275.5 -> 0 円
+        SVG 214.5 -> 100 円
+        SVG 152.5 -> 200 円
+        SVG 90.5  -> 300 円
+    """
+    y_svg = [275.5, 214.5, 152.5, 90.5]
+    y_price = [0, 100, 200, 300]
+
+    # Linear fit: price = a * y_svg + b
+    coeffs = np.polyfit(y_svg, y_price, 1)  # returns [a, b]
+    a, b = coeffs
+
+    df = df.copy()
+    df["Price"] = df["y"] * a + b
+    return df
+
 
 class JEPX:
     def __init__(self):
@@ -25,81 +93,156 @@ class JEPX:
             ]
         )
         return browser
-    
-    def navigation_process(self, debug=False):
+
+    def _download_csv(self, dir_name: str, date: str, out_path: str):
+        # Remove slashes
+        date_str = date.replace("/", "")
+        file_name = f"{dir_name}_{date_str}.csv"
+        url = f"https://www.jepx.jp/js/csv_read.php?dir={dir_name}&file={file_name}"
+
+        headers = {
+            "Referer": self.page.url,  # Use the current loaded page as referer
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+            "Accept": "*/*",
+        }
+
+        r = requests.get(url, headers=headers)
+        if r.ok and len(r.content) > 100:
+            with open(out_path, "wb") as f:
+                f.write(r.content)
+            print(f"Downloaded: {out_path}")
+        else:
+            print(f"Failed to download CSV: {url}")
+
+    def download_bid_and_area_csv(self, date: str):
+        try:
+            self._navigate_spot_page(date=date, item="bid_curves")
+            self._download_csv("spot_bid_curves", date, f"spot_bid_curves_{date.replace('/', '')}.csv")
+            self._download_csv("spot_splitting_areas", date, f"spot_splitting_areas_{date.replace('/', '')}.csv")
+        finally:
+            if self.browser:
+                self.browser.close()
+            if self.playwright:
+                self.playwright.stop()
+
+    def _navigate_spot_page(self, date: str, debug=False, accept_downloads=False, item: str = "spot"):
         """
-        Automates the navigation process on the JEPX spot market page.
-        This includes selecting default options, opening the date picker, 
-        and selecting tomorrow's date.
+        Navigate to the JEPX spot market page, set a specific date, and select 'All Areas'.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+            accept_downloads (bool): If True, allow browser downloads (for download operations).
         """
+        from datetime import datetime
+
+        dt = datetime.strptime(date, "%Y/%m/%d")
+        year = dt.year
+        month = dt.month - 1
+        day = dt.day
+
         self.playwright = sync_playwright().start()
         self.browser = self._launch_browser(self.playwright, debug)
-        context = self.browser.new_context()
+        context = self.browser.new_context(accept_downloads=accept_downloads)
         self.page = context.new_page()
 
-        # Open the target page
-        self.page.goto(f"{self.base_url}electricpower/market-data/spot/")
+        if item.lower() == "spot":
+            self.page.goto(f"{self.base_url}electricpower/market-data/spot/")
+            try:
+                assert self.page.locator("span.active").inner_text() == "約定価格　入札・約定量"
+                assert self.page.locator("label.filter-label.active").inner_text() == "30分コマ"
+            except Exception as e:
+                print(f"Warning: default spot page layout check failed: {e}")
+        elif item.lower() in {"bid_curves", "virtualprice"}:
+            self.page.goto(f"{self.base_url}electricpower/market-data/spot/{item}.html")
+            print(f"Info: Skipping layout assertions for item: {item}")
+        else:
+            print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
-        # Ensure "約定価格　入札・約定量" is selected (default option)
-        assert self.page.locator("span.active").inner_text() == "約定価格　入札・約定量"
-
-        # Ensure "30分コマ" is selected (default option)
-        assert self.page.locator("label.filter-label.active").inner_text() == "30分コマ"
-
-        # Open the date picker
         self.page.click("#button--calender-show")
-
-        # Calculate tomorrow's date
-        tomorrow = datetime.now() + timedelta(days=1)
-        year = tomorrow.year
-        month = tomorrow.month - 1  # Playwright uses zero-based months
-        day = tomorrow.day
-
-        # Select the year in the date picker
         self.page.select_option(".ui-datepicker-year", str(year))
-
-        # Select the month in the date picker
         self.page.select_option(".ui-datepicker-month", str(month))
-
-        # Click on tomorrow's date
         self.page.click(f"a.ui-state-default[data-date='{day}']")
 
-        # Wait for the page to load or perform additional actions
         self.page.wait_for_timeout(2000)
 
-        # Select the "全エリア" checkbox
-        checkbox_graph_section = self.page.locator("#checkbox-area--graph")
-        checkbox_graph_section.locator("#area_all").check()
+        if item.lower() == "spot":
+            try:
+                label = self.page.locator("#checkbox-area--graph label[for='area_all']")
+                label.click()
+                print("Successfully clicked 'All Areas' checkbox")
+            except Exception as e:
+                print(f"Failed to click 'All Areas' checkbox: {e}")
+        elif item.lower() == "bid_curves":
+            pass
+        else:
+            print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
-        # Wait for the page to load or perform additional actions
-        self.page.wait_for_timeout(2000)
 
-        # Example: Perform additional actions, such as clicking the download button
-        # self.page.click("button[data-dl='spot_summary']")
-
-    def _generate_timestamp(self):
+    def spot_table(self, date: str, debug=False):
         """
-        Generate a timestamp string in the format YYYYMMDD_HHMMSS.
+        Navigate to JEPX spot market page, set a specific date,
+        select '全エリア', switch to 'テーブル' view, and extract tables.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            (price_df, amount_df): Two pandas DataFrames
         """
-        return datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._navigate_spot_page(date, debug, accept_downloads=False)
 
-    def _save_downloaded_file(self, download, filename_prefix: str, save_dir: str = "csv"):
+        try:
+            self.page.locator("button[data-type='table']").click()
+            self.page.wait_for_timeout(2000)
+            print("Switched to 'Table' view")
+        except Exception as e:
+            print(f"Failed to switch to 'Table' view: {e}")
+
+        # --- Extract price table
+        try:
+            table1_locator = self.page.locator("#spotGraph1-table table")
+            table1_html = table1_locator.inner_html()
+            price_df = pd.read_html(f"<table>{table1_html}</table>")[0]
+            price_df["Date"] = date
+            print(f"Extracted price table: {price_df.shape[0]} rows, {price_df.shape[1]} columns")
+        except Exception as e:
+            print(f"Failed to extract price table: {e}")
+            price_df = None
+
+        # --- Extract amount table
+        try:
+            table2_locator = self.page.locator("#spotGraph2-table table")
+            table2_html = table2_locator.inner_html()
+            amount_df = pd.read_html(f"<table>{table2_html}</table>")[0]
+            amount_df["Date"] = date
+            print(f"Extracted amount table: {amount_df.shape[0]} rows, {amount_df.shape[1]} columns")
+        except Exception as e:
+            print(f"Failed to extract amount table: {e}")
+            amount_df = None
+
+        return price_df, amount_df
+
+    def spot_curve(self, date: str, debug=False):
         """
-        Save the downloaded file to the specified directory with a timestamped filename.
+        Navigate to JEPX spot market page, set a specific date,
+        select '全エリア', switch to 'テーブル' view, and extract tables.
 
-        :param download: Playwright Download object
-        :param filename_prefix: filename prefix (e.g., 'unit', 'outages')
-        :param save_dir: directory to save the file (default 'csv')
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            (price_df, amount_df): Two pandas DataFrames
         """
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        timestamp = self._generate_timestamp()
-        filename = f"{filename_prefix}_{timestamp}.csv"
-        save_path = os.path.join(save_dir, filename)
-
-        download.save_as(save_path)
-        print(f"CSV file saved as: {save_path}")
+        self._navigate_spot_page(date, debug, accept_downloads=False, item= "bid_curves")
+        try:
+            self._download_csv("spot_bid_curves", date, f"spot_bid_curves_{date.replace('/', '')}.csv")
+            self._download_csv("spot_splitting_areas", date, f"spot_splitting_areas_{date.replace('/', '')}.csv")
+            print(f"Extracted")
+        except Exception as e:
+            print(f"Failed to extract amount table: {e}")
 
     def open_session(self, debug=False):
         """
@@ -111,118 +254,6 @@ class JEPX:
         self.page = context.new_page()
         self.page.goto(self.base_url + "/electricpower/market-data/spot/", wait_until="networkidle")
         time.sleep(2)
-
-    def _fetch_csrf_token(self, page_id):
-        """
-        Fetch CSRF token from a given page using Playwright request.
-        """
-        try:
-            response = self.page.request.get(self.base_url + page_id)
-            content = response.text()
-            soup = BeautifulSoup(content, 'html.parser')
-            csrf_token = soup.find('input', {'name': '_csrf'}).get('value')
-            return csrf_token
-        except Exception as e:
-            print(f"Error fetching CSRF token: {e}")
-            return None
-
-    def _get_unit_status_data(self, from_date, area):
-        """
-        Request unit_status and follow-up unit_status_ajax using Playwright.
-        """
-        csrf_token = self._fetch_csrf_token("unit_status")
-        if not csrf_token:
-            return None
-
-        # Step 1: Access unit_status page with parameters
-        params = {
-            'from': from_date,
-            'to': '',
-            'area': area,
-            'format': '1',
-            '_csrf': csrf_token
-        }
-        response = self.page.request.get(
-            self.base_url + "unit_status",
-            params=params,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
-        )
-        if response.status != 200:
-            print(f"Failed to fetch unit_status: {response.status}")
-            return None
-
-        # Step 2: Request unit_status_ajax to get JSON data
-        ajax_response = self.page.request.get(
-            self.base_url + "unit_status_ajax",
-            params={'_': int(time.time() * 1000)}
-        )
-        return ajax_response
-
-    def _process_unit_status_data(self, response):
-        """
-        Process JSON response and return two DataFrames (operation and stop).
-        """
-        try:
-            data = json.loads(response.text())
-            if data.get('status') == 'success':
-                df_opr = pd.DataFrame(data['startdtList'], columns=['Date'])
-                df_opr.set_index('Date', inplace=True)
-                for series in data['unitStatusSeriesList']:
-                    df_opr[series['name']] = series['data']
-
-                df_stop = pd.DataFrame(data['startdtList'], columns=['Date'])
-                df_stop.set_index('Date', inplace=True)
-                for series in data['unitStopStatusSeriesList']:
-                    df_stop[series['name']] = series['data']
-
-                return df_opr / 1000, df_stop / 1000  # Convert kW to MW
-        except Exception as e:
-            print(f"Error processing unit_status data: {e}")
-        return None, None
-
-    def get_unit_status(self, from_date, area):
-        """
-        Input date and area, return two DataFrames (operation and stop).
-        """
-        response = self._get_unit_status_data(from_date, area)
-        if response:
-            return self._process_unit_status_data(response)
-        else:
-            return None, None
-
-    def download_unit_csv(self):
-        """
-        Download unit CSV by calling the generic download_csv method.
-        """
-        self.download_csv(page_name="unit", filename_prefix="unit")
-
-    def download_outages_csv(self):
-        """
-        Download outages CSV by calling the generic download_csv method.
-        """
-        self.download_csv(page_name="outages", filename_prefix="outages")
-
-    def download_csv(self, page_name: str, filename_prefix: str, save_dir: str = "csv"):
-        """
-        Download CSV from the specified page by simulating button click using Playwright.
-        Save the file into the specified directory with a timestamped filename.
-        """
-        try:
-            url = self.base_url + page_name
-            self.page.goto(url, wait_until="networkidle")
-            time.sleep(1)
-
-            self.page.eval_on_selector("#csv", "el => el.value = 'csv'")
-
-            with self.page.expect_download() as download_info:
-                self.page.click("input[type='submit'][value='CSVダウンロード']")
-
-            download = download_info.value
-
-            self._save_downloaded_file(download, filename_prefix, save_dir)
-
-        except Exception as e:
-            print(f"Error downloading CSV from page {page_name}: {e}")
 
     def close_session(self):
         """
@@ -240,14 +271,10 @@ if __name__ == '__main__':
     print(today_date)
 
     jepx = JEPX()
-    # jepx.open_session(debug=True)
-    jepx.navigation_process(debug=True)
-    # jepx.open_session(debug=True)  # Open Playwright browser and page
-    # df_oprt, df_stop = jepx.get_unit_status(today_date, '9')  # Fetch data for Kyushu (area 9)
-    # jepx.download_outages_csv()
-    # jepx.download_unit_csv()
-    jepx.download_csv("unit", "unit")
-    jepx.download_csv("outages", "outages")
 
-    jepx.close_session()  # Clean up Playwright resources
+    # price_df, amount_df = jepx.spot_table(date="2024/04/25", debug=True)
+    jepx.spot_curve(date="2024/04/25", debug=True)
+    # jepx.download_spot_summary_csv(date="2020/04/25", debug=True, save_dir="spot_summary")
+    #
+    # jepx.close_session()  # Clean up Playwright resources
 
