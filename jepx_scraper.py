@@ -193,9 +193,10 @@ if __name__ == '__main__':
     # # print(today_date)
 
     jepx = JEPX()
-    jepx.spot_curve(date="2025/04/24", debug=False)
+    jepx.spot_curve(date="2025/04/24", debug=True)
     jepx.close_session()
 
+    print()
     # # jepx.batch_spot_curve(start_date_str="2025/05/26", end_date_str="2025/05/23", debug=False)
 
     # # # price_df, amount_df = jepx.spot_table(date="2024/04/25", debug=True)
