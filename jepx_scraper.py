@@ -1,7 +1,8 @@
-
 import time
 import pandas as pd
 import requests
+import warnings
+import urllib3
 from playwright.sync_api import sync_playwright
 
 class JEPX:
@@ -36,7 +37,8 @@ class JEPX:
             "Accept": "*/*",
         }
 
-        r = requests.get(url, headers=headers)
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        r = requests.get(url, headers=headers, verify=False)
         if r.ok and len(r.content) > 100:
             with open(out_path, "wb") as f:
                 f.write(r.content)
@@ -83,7 +85,7 @@ class JEPX:
         self.page.select_option(".ui-datepicker-month", str(month))
         self.page.click(f"a.ui-state-default[data-date='{day}']")
 
-        self.page.wait_for_timeout(2000)
+        self.page.wait_for_timeout(8000)
 
         if item.lower() == "spot":
             try:
@@ -184,16 +186,20 @@ class JEPX:
             self.playwright.stop()
 
 if __name__ == '__main__':
-    from datetime import datetime
 
-    today_date = datetime.now().strftime("%Y/%m/%d")
-    print(today_date)
+    from datetime import datetime, timedelta
+
+    # # today_date = datetime.now().strftime("%Y/%m/%d")
+    # # print(today_date)
 
     jepx = JEPX()
+    jepx.spot_curve(date="2025/04/24", debug=False)
+    jepx.close_session()
 
-    # price_df, amount_df = jepx.spot_table(date="2024/04/25", debug=True)
-    jepx.spot_curve(date="2024/04/25", debug=True)
-    # jepx.download_spot_summary_csv(date="2020/04/25", debug=True, save_dir="spot_summary")
-    #
+    # # jepx.batch_spot_curve(start_date_str="2025/05/26", end_date_str="2025/05/23", debug=False)
+
+    # # # price_df, amount_df = jepx.spot_table(date="2024/04/25", debug=True)
+    # jepx.spot_curve(date="2025/05/19", debug=False)
+    # # # jepx.download_spot_summary_csv(date="2020/04/25", debug=True, save_dir="spot_summary")
+    # # #
     # jepx.close_session()  # Clean up Playwright resources
-
