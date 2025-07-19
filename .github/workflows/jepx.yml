@@ -27,7 +27,6 @@ jobs:
         id: jst_date
         run: |
           TZ=Asia/Tokyo
-          NOW_JST=$(date +'%Y-%m-%d %H:%M' --date='TZ="Asia/Tokyo"')
           HOUR=$(date +'%H' --date='TZ="Asia/Tokyo"')
           MINUTE=$(date +'%M' --date='TZ="Asia/Tokyo"')
           if [ "$HOUR" -lt 10 ] || { [ "$HOUR" -eq 10 ] && [ "$MINUTE" -lt 30 ]; }; then
@@ -35,9 +34,15 @@ jobs:
           else
             TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo" +1 day')
           fi
-          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
-          echo "Target date determined: $TARGET_DATE"
 
+          TARGET_DATE_SLUG=${TARGET_DATE////-}
+          TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
+
+          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
+          echo "TARGET_DATE_SLUG=$TARGET_DATE_SLUG" >> "$GITHUB_ENV"
+          echo "TARGET_YEAR=$TARGET_YEAR" >> "$GITHUB_ENV"
+          echo "Target date: $TARGET_DATE (slug: $TARGET_DATE_SLUG)"
+      
       - name: Run spot curve scraper
         run: python run_jepx_curve.py "$TARGET_DATE"
 
@@ -47,7 +52,9 @@ jobs:
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jepx-${{ env.TARGET_DATE }}
+          name: jepx-${{ env.TARGET_DATE_SLUG }}
           path: |
-            csv/**/*.csv
+            csv/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv
+            csv/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv
+            csv/spot_summary_${{ env.TARGET_YEAR }}.csv
           if-no-files-found: ignore
