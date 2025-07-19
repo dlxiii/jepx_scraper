@@ -195,11 +195,12 @@ if __name__ == '__main__':
 
     from datetime import datetime, timedelta
 
-    # # today_date = datetime.now().strftime("%Y/%m/%d")
-    # # print(today_date)
+    today_date = datetime.now().strftime("%Y/%m/%d")
+    print(today_date)
 
     jepx = JEPX()
-    jepx.spot_curve(date="2025/04/24", debug=True)
+    # jepx.spot_curve(date="2025/04/24", debug=True)
+    jepx.spot_curve(date=today_date, debug=True)
     jepx.close_session()
 
     print()
