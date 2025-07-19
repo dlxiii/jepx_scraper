@@ -5,6 +5,10 @@ setlocal enabledelayedexpansion
 :: Define Python path
 set "USERPROFILE_PATH=%USERPROFILE%"
 set "PYTHON_PATH=%USERPROFILE_PATH%\Miniconda3\envs\jepx_scraper\python.exe"
+if not exist "%PYTHON_PATH%" (
+    :: Try .conda path if Miniconda3 not found
+    set "PYTHON_PATH=%USERPROFILE%\.conda\envs\jepx_scraper\python.exe"
+)
 
 :: Set the start and end dates (format: yyyy-MM-dd)
 set "START_DATE=2025-07-18"
