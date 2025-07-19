@@ -75,3 +75,24 @@ jobs:
           git add csv/
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
           git push origin main
+
+      - name: Send notification email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "OpenDenki_Data: JEPX Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
+          to: opendenki_data@googlegroups.com
+          from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
+          body: |
+            JEPX data scraping job for ${{ env.TARGET_DATE_SLUG }} has completed successfully.
+
+            Files have been:
+            - Saved in the repository under csv/
+            - Uploaded to GitHub Actions Artifacts
+            - Committed back to the repository
+
+            📎 View workflow logs:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
