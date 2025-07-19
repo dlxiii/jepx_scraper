@@ -24,7 +24,7 @@ jobs:
           playwright install --with-deps
 
       - name: Run scraper (auto-select date by JST)
-        run: python run_jepx_curve.py
+        run: python jepx_scraper.py
 
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
