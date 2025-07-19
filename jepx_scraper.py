@@ -268,15 +268,18 @@ class JEPX:
 if __name__ == '__main__':
 
     from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo  # or import pytz if < 3.9
 
-    today_date = datetime.now().strftime("%Y/%m/%d")
-    print(today_date)
+    # Get current date in Japan Standard Time
+    japan_now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    today_date = japan_now.strftime("%Y/%m/%d")
+    japan_tomorrow = japan_now + timedelta(days=1)
+    tomorrow_date = japan_tomorrow.strftime("%Y/%m/%d")
+    print(f"[JST] Today is: {today_date}, [JST] day-ahead is: {tomorrow_date}")
 
     jepx = JEPX()
-    # jepx.spot_curve(date="2025/04/24", debug=True)
-    jepx.spot_curve(date=today_date, debug=True)
-    # jepx.spot_summary(date="2025/04/24", debug=True)
-    jepx.spot_summary(date=today_date, debug=True)
+    jepx.spot_curve(date=tomorrow_date, debug=True)
+    jepx.spot_summary(date=tomorrow_date, debug=True)
     jepx.close_session()
 
     print()
