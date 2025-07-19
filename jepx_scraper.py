@@ -274,9 +274,9 @@ if __name__ == '__main__':
 
     jepx = JEPX()
     # jepx.spot_curve(date="2025/04/24", debug=True)
-    # jepx.spot_curve(date=today_date, debug=True)
-    jepx.spot_summary(date="2022/04/24", debug=True)
-    # jepx.spot_summary(date=today_date, debug=True)
+    jepx.spot_curve(date=today_date, debug=True)
+    # jepx.spot_summary(date="2025/04/24", debug=True)
+    jepx.spot_summary(date=today_date, debug=True)
     jepx.close_session()
 
     print()
