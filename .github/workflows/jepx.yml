@@ -2,7 +2,7 @@ name: Download JEPX data
 
 on:
   schedule:
-    - cron: '30 1 * * *'  # JST 10:30
+    - cron: '30 1 * * *'  # JST 10:30 every day
   workflow_dispatch:
 
 jobs:
@@ -23,13 +23,16 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps
 
-      - name: Run scraper (auto-select date by JST)
-        run: python jepx_scraper.py
+      - name: Run spot curve scraper (JST-based date)
+        run: python run_jepx_curve.py
+
+      - name: Run spot summary scraper (JST-based date)
+        run: python run_jepx_summary.py
 
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jepx-latest
+          name: jepx-csv
           path: |
             csv/**/*.csv
           if-no-files-found: ignore
