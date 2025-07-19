@@ -7,8 +7,8 @@ set "USERPROFILE_PATH=%USERPROFILE%"
 set "PYTHON_PATH=%USERPROFILE_PATH%\Miniconda3\envs\jepx_scraper\python.exe"
 
 :: Set the start and end dates (format: yyyy-MM-dd)
-set "START_DATE=2025-05-26"
-set "END_DATE=2020-04-01"
+set "START_DATE=2025-07-18"
+set "END_DATE=2025-05-27"
 
 :: Convert END_DATE to no-dash format once（这是常量）
 set "END_NO_DASH=%END_DATE:-=%"
