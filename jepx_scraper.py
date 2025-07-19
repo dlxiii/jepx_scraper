@@ -1,3 +1,4 @@
+import os
 import time
 import pandas as pd
 import requests
@@ -40,6 +41,7 @@ class JEPX:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         r = requests.get(url, headers=headers, verify=False)
         if r.ok and len(r.content) > 100:
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
             with open(out_path, "wb") as f:
                 f.write(r.content)
             print(f"Downloaded: {out_path}")
@@ -157,11 +159,15 @@ class JEPX:
         Returns:
             (price_df, amount_df): Two pandas DataFrames
         """
-        self._navigate_spot_page(date, debug, accept_downloads=False, item= "bid_curves")
+        self._navigate_spot_page(date, debug, accept_downloads=False, item="bid_curves")
         try:
-            self._download_csv("spot_bid_curves", date, f"spot_bid_curves_{date.replace('/', '')}.csv")
-            self._download_csv("spot_splitting_areas", date, f"spot_splitting_areas_{date.replace('/', '')}.csv")
-            print(f"Extracted")
+            year = date.split("/")[0]
+            date_no_slash = date.replace("/", "")
+            bid_path = os.path.join("csv", year, f"spot_bid_curves_{date_no_slash}.csv")
+            split_path = os.path.join("csv", year, f"spot_splitting_areas_{date_no_slash}.csv")
+            self._download_csv("spot_bid_curves", date, bid_path)
+            self._download_csv("spot_splitting_areas", date, split_path)
+            print("Extracted")
         except Exception as e:
             print(f"Failed to extract amount table: {e}")
 

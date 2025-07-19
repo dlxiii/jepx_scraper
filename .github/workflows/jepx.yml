@@ -27,8 +27,10 @@ jobs:
         run: |
           DAY=$(date -u -d 'yesterday' '+%Y/%m/%d')
           NO_SLASH=$(date -u -d 'yesterday' '+%Y%m%d')
+          YEAR=$(date -u -d 'yesterday' '+%Y')
           echo "SCRAPE_DATE=$DAY" >> "$GITHUB_ENV"
           echo "DAY_NOSLASH=$NO_SLASH" >> "$GITHUB_ENV"
+          echo "YEAR=$YEAR" >> "$GITHUB_ENV"
 
       - name: Run scraper
         run: python run_jepx_curve.py "$SCRAPE_DATE"
@@ -38,6 +40,6 @@ jobs:
         with:
           name: jepx-${{ env.DAY_NOSLASH }}
           path: |
-            spot_bid_curves_${{ env.DAY_NOSLASH }}.csv
-            spot_splitting_areas_${{ env.DAY_NOSLASH }}.csv
+            csv/${{ env.YEAR }}/spot_bid_curves_${{ env.DAY_NOSLASH }}.csv
+            csv/${{ env.YEAR }}/spot_splitting_areas_${{ env.DAY_NOSLASH }}.csv
           if-no-files-found: ignore

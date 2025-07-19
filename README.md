@@ -13,7 +13,7 @@ playwright install
 
 ## Usage
 
-Run the helper script with a date in `YYYY/MM/DD` format. CSV files will be written to the `csv/` directory.
+Run the helper script with a date in `YYYY/MM/DD` format. CSV files are placed under `csv/<YEAR>/` based on the year of the date.
 
 ```bash
 python run_jepx_curve.py 2025/04/24
