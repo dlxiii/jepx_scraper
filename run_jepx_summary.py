@@ -11,5 +11,5 @@ if __name__ == '__main__':
     datetime.strptime(date_str, "%Y/%m/%d")
 
     jepx = JEPX()
-    jepx.spot_curve(date=date_str, debug=False)
+    jepx.spot_summary(date=date_str, debug=False)
     jepx.close_session()
