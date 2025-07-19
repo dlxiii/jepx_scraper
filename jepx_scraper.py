@@ -268,18 +268,28 @@ class JEPX:
 if __name__ == '__main__':
 
     from datetime import datetime, timedelta
-    from zoneinfo import ZoneInfo  # or import pytz if < 3.9
+    from zoneinfo import ZoneInfo  # Python 3.9+
 
-    # Get current date in Japan Standard Time
+    # Get current Japan time
     japan_now = datetime.now(ZoneInfo("Asia/Tokyo"))
     today_date = japan_now.strftime("%Y/%m/%d")
     japan_tomorrow = japan_now + timedelta(days=1)
     tomorrow_date = japan_tomorrow.strftime("%Y/%m/%d")
-    print(f"[JST] Today is: {today_date}, [JST] day-ahead is: {tomorrow_date}")
 
+    # Determine which date to use
+    if japan_now.hour < 10 or (japan_now.hour == 10 and japan_now.minute < 30):
+        target_date = today_date
+    else:
+        target_date = tomorrow_date
+
+    print(f"[JST] Now: {japan_now.strftime('%Y-%m-%d %H:%M')}")
+    print(f"[JST] Today is: {today_date}, Tomorrow is: {tomorrow_date}")
+    print(f"[JST] Using target date: {target_date}")
+
+    # Run scraper
     jepx = JEPX()
-    jepx.spot_curve(date=tomorrow_date, debug=True)
-    jepx.spot_summary(date=tomorrow_date, debug=True)
+    jepx.spot_curve(date=target_date, debug=True)
+    jepx.spot_summary(date=target_date, debug=True)
     jepx.close_session()
 
     print()
