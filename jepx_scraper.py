@@ -280,10 +280,3 @@ if __name__ == '__main__':
     jepx.close_session()
 
     print()
-    # # jepx.batch_spot_curve(start_date_str="2025/05/26", end_date_str="2025/05/23", debug=False)
-
-    # # # price_df, amount_df = jepx.spot_table(date="2024/04/25", debug=True)
-    # jepx.spot_curve(date="2025/05/19", debug=False)
-    # # # jepx.download_spot_summary_csv(date="2020/04/25", debug=True, save_dir="spot_summary")
-    # # #
-    # jepx.close_session()  # Clean up Playwright resources
