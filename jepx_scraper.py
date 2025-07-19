@@ -26,11 +26,25 @@ class JEPX:
         )
         return browser
 
-    def _download_csv(self, dir_name: str, date: str, out_path: str):
+    def _download_csv(self, dir_name: str, date: str, out_path: str, overwrite=True):
+        """
+        Download a CSV file from JEPX for a given directory and date.
+
+        Args:
+            dir_name (str): Directory name on JEPX (e.g., 'spot_bid_curves').
+            date (str): Date string in 'YYYY/MM/DD' format.
+            out_path (str): Local file path where the CSV will be saved.
+            overwrite (bool): Whether to overwrite the file if it already exists. Default is True.
+        """
         # Remove slashes
-        date_str = date.replace("/", "")
+        date_str = date.replace("/", "") if "/" in date else date
         file_name = f"{dir_name}_{date_str}.csv"
         url = f"https://www.jepx.jp/js/csv_read.php?dir={dir_name}&file={file_name}"
+
+        # Skip download if file exists and overwrite is disabled
+        if os.path.exists(out_path) and not overwrite:
+            print(f"File exists, skipping download: {out_path}")
+            return
 
         headers = {
             "Referer": self.page.url,  # Use the current loaded page as referer
@@ -69,26 +83,59 @@ class JEPX:
         context = self.browser.new_context(accept_downloads=accept_downloads)
         self.page = context.new_page()
 
-        if item.lower() == "spot":
+        if item.lower() == "spot" or item.lower() == "spot_summary":
             self.page.goto(f"{self.base_url}electricpower/market-data/spot/")
-            try:
-                assert self.page.locator("span.active").inner_text() == "約定価格　入札・約定量"
-                assert self.page.locator("label.filter-label.active").inner_text() == "30分コマ"
-            except Exception as e:
-                print(f"Warning: default spot page layout check failed: {e}")
+            if item.lower() == "spot":
+                # Check layout for spot page (graph mode, 30-min intervals)
+                try:
+                    assert self.page.locator("span.active").inner_text() == "約定価格　入札・約定量"
+                    assert self.page.locator("label.filter-label.active").inner_text() == "30分コマ"
+                except Exception as e:
+                    print(f"Warning: default spot page layout check failed: {e}")
         elif item.lower() in {"bid_curves", "virtualprice"}:
             self.page.goto(f"{self.base_url}electricpower/market-data/spot/{item}.html")
             print(f"Info: Skipping layout assertions for item: {item}")
         else:
             print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
-        self.page.click("#button--calender-show")
-        self.page.select_option(".ui-datepicker-year", str(year))
-        self.page.select_option(".ui-datepicker-month", str(month))
-        self.page.click(f"a.ui-state-default[data-date='{day}']")
+        # Handle spot_summary separately — no calendar logic
+        if item.lower() == "spot_summary":
+            try:
+                # Click "データダウンロード" button
+                self.page.click("button.dl-button[data-dl='spot_summary']")
+                self.page.wait_for_timeout(1000)
 
-        self.page.wait_for_timeout(8000)
+                # Wait for modal to appear
+                self.page.wait_for_selector("#modal-box--spot_summary", timeout=3000)
 
+                # Select correct financial year
+                finial_year = year if dt.month >= 4 else year - 1
+                year_option_value = f"spot_summary_{finial_year}.csv"
+
+                # Select the year from dropdown
+                self.page.select_option("#dl-select--spot_summary", value=year_option_value)
+                self.page.wait_for_timeout(500)
+
+                # Click the download button in modal
+                self.page.click("#modal-box--spot_summary button.dl-button")
+                print(f"Triggered download for spot_summary_{finial_year}.csv")
+
+            except Exception as e:
+                print(f"Failed to operate spot_summary modal: {e}")
+            return
+
+        # Normal date selection (skip if spot_summary)
+        try:
+            self.page.click("#button--calender-show")
+            self.page.select_option(".ui-datepicker-year", str(year))
+            self.page.select_option(".ui-datepicker-month", str(month))
+            self.page.click(f"a.ui-state-default[data-date='{day}']")
+
+            self.page.wait_for_timeout(8000)
+        except Exception as e:
+            print(f"Calendar selection failed: {e}")
+
+        # Additional action for "spot" item: click "All Areas" checkbox
         if item.lower() == "spot":
             try:
                 label = self.page.locator("#checkbox-area--graph label[for='area_all']")
@@ -96,10 +143,6 @@ class JEPX:
                 print("Successfully clicked 'All Areas' checkbox")
             except Exception as e:
                 print(f"Failed to click 'All Areas' checkbox: {e}")
-        elif item.lower() == "bid_curves":
-            pass
-        else:
-            print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
 
     def spot_table(self, date: str, debug=False):
@@ -146,6 +189,37 @@ class JEPX:
             amount_df = None
 
         return price_df, amount_df
+
+    def spot_summary(self, date: str, debug=False):
+        """
+        Navigate to JEPX spot market summary page, set a specific date,
+        extract summary data, and save CSV using financial year logic.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            str: Path to the saved CSV file.
+        """
+        from datetime import datetime
+
+        self._navigate_spot_page(date, debug, accept_downloads=False, item="spot_summary")
+        dt = datetime.strptime(date, "%Y/%m/%d")
+        if dt.month >= 4:
+            finial_year = dt.year
+        else:
+            finial_year = dt.year - 1
+        spot_path = os.path.join("csv", f"spot_summary_{finial_year}.csv")
+
+        try:
+            self._download_csv("spot_summary", str(finial_year), spot_path, overwrite=True)
+            print(f"Saved summary CSV: {spot_path}")
+            return spot_path
+
+        except Exception as e:
+            print(f"Failed to extract summary data: {e}")
+            return None
 
     def spot_curve(self, date: str, debug=False):
         """
@@ -200,7 +274,9 @@ if __name__ == '__main__':
 
     jepx = JEPX()
     # jepx.spot_curve(date="2025/04/24", debug=True)
-    jepx.spot_curve(date=today_date, debug=True)
+    # jepx.spot_curve(date=today_date, debug=True)
+    jepx.spot_summary(date="2022/04/24", debug=True)
+    # jepx.spot_summary(date=today_date, debug=True)
     jepx.close_session()
 
     print()
