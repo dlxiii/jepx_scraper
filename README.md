@@ -22,3 +22,7 @@ python run_jepx_curve.py 2025/04/24
 ## Data storage
 
 The repository includes a `csv/` directory containing roughly 1.4 GB of historical CSV files. If you plan to store more data, consider using [Git LFS](https://git-lfs.github.com/) or another external storage option instead of committing large files directly to Git.
+
+## Scheduled scraping
+
+The repository contains a workflow file at `.github/workflows/jepx.yml` that runs daily and uploads the latest CSV files as artifacts. When you fork the project, GitHub disables workflows by default. To activate the schedule, open the "Actions" tab in your GitHub repository and click **Enable workflows**.
