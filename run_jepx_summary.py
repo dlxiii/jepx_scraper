@@ -4,7 +4,7 @@ from datetime import datetime
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: python jepx_scraper.py YYYY/MM/DD")
+        print("Usage: python jepx_scraper.py YYYY/MM/DD --> spot_summary")
         sys.exit(1)
 
     date_str = sys.argv[1]
