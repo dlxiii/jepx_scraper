@@ -88,7 +88,7 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "OpenDenki_Data: JEPX Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
+          subject: "OpenDenki_Data: JEPX Spot Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
           to: opendenki_data@googlegroups.com
           from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
           body: |
