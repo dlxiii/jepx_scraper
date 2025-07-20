@@ -94,7 +94,7 @@ class JEPX:
                     print(f"Warning: default spot page layout check failed: {e}")
         elif item.lower() in {"bid_curves", "virtualprice"}:
             self.page.goto(f"{self.base_url}electricpower/market-data/spot/{item}.html")
-        elif item.lower() in {"intraday"}:
+        elif item.lower() in {"intraday", "transmission_rights"}:
             self.page.goto(f"{self.base_url}electricpower/market-data/{item}/")
         else:
             print(f"Warning: Unrecognized item '{item}', skipping default checks.")
@@ -122,6 +122,14 @@ class JEPX:
                 self.page.click("button.dl-button[data-dl='intraday']")
             except Exception as e:
                 print(f"Failed to operate intraday modal: {e}")
+            return
+
+        elif item.lower() == "transmission_rights":
+            try:
+                # Click "データダウンロード" button
+                self.page.click("button.dl-button[data-dl='transmission_rights']")
+            except Exception as e:
+                print(f"Failed to operate transmission_rights modal: {e}")
             return
 
         # Normal date selection (skip if spot_summary or virtualprice)
@@ -309,6 +317,37 @@ class JEPX:
             print(f"Failed to extract intraday data: {e}")
             return None
 
+    def transmission_rights(self, date: str, debug=False):
+        """
+        Navigate to JEPX transmission_right price page, set a specific date,
+        extract transmission_right price, and save CSV using financial year logic.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            str: Path to the saved CSV file.
+        """
+        from datetime import datetime
+
+        self._navigate_spot_page(date, debug, accept_downloads=False, item="transmission_rights")
+        dt = datetime.strptime(date, "%Y/%m/%d")
+        if dt.month >= 4:
+            finial_year = dt.year
+        else:
+            finial_year = dt.year - 1
+        spot_path = os.path.join("csv", f"transmission_rights_{finial_year}.csv")
+
+        try:
+            self._download_csv("transmission_rights", str(finial_year), spot_path, overwrite=True)
+            print(f"Saved transmission_rights CSV: {spot_path}")
+            return spot_path
+
+        except Exception as e:
+            print(f"Failed to extract transmission_right data: {e}")
+            return None
+
     def open_session(self, debug=False):
         """
         Open browser session using Playwright and navigate to HJKS unit page.
@@ -358,7 +397,8 @@ if __name__ == '__main__':
     # jepx.intraday(date=target_date, debug=True)
     # jepx.spot_summary(date='2005/07/20', debug=True)
     # jepx.spot_virtual_price(date='2025/07/20', debug=True)
-    jepx.intraday(date='2016/07/20', debug=True)
+    # jepx.intraday(date='2016/07/20', debug=True)
+    jepx.transmission_rights(date='2025/07/20', debug=True)
     jepx.close_session()
 
     print()
