@@ -312,10 +312,10 @@ if __name__ == '__main__':
 
     # Run scraper
     jepx = JEPX()
-    # jepx.spot_curve(date=target_date, debug=True)
-    # jepx.spot_summary(date=target_date, debug=True)
-    # jepx.spot_virtual_price(date=target_date, debug=True)
-    jepx.spot_summary(date='2005/07/20', debug=True)
+    jepx.spot_curve(date=target_date, debug=True)
+    jepx.spot_summary(date=target_date, debug=True)
+    jepx.spot_virtual_price(date=target_date, debug=True)
+    # jepx.spot_summary(date='2005/07/20', debug=True)
     # jepx.spot_virtual_price(date='2019/07/20', debug=True)
     jepx.close_session()
 
