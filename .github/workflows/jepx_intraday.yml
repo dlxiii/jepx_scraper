@@ -1,0 +1,93 @@
+name: OpenDenki_Data JEPX Intraday data
+
+on:
+  schedule:
+    - cron: '30 */6 * * *'  # every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps
+
+      - name: Calculate JST target date
+        id: jst_date
+      
+        run: |
+          TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+          TARGET_DATE_SLUG=${TARGET_DATE////-}
+          TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
+          MONTH=$(echo $TARGET_DATE | cut -d'/' -f2)
+          if [ "$MONTH" -lt 4 ]; then
+            FINANCIAL_YEAR=$((TARGET_YEAR - 1))
+          else
+            FINANCIAL_YEAR=$TARGET_YEAR
+          fi
+
+          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
+          echo "TARGET_DATE_SLUG=$TARGET_DATE_SLUG" >> "$GITHUB_ENV"
+          echo "TARGET_YEAR=$TARGET_YEAR" >> "$GITHUB_ENV"
+          echo "FINANCIAL_YEAR=$FINANCIAL_YEAR" >> "$GITHUB_ENV"
+          echo "Target date: $TARGET_DATE (slug: $TARGET_DATE_SLUG, FY: $FINANCIAL_YEAR)"
+        - name: Run intraday scraper
+          run: python run_jepx_intraday.py "$TARGET_DATE"
+
+
+      - name: Upload CSV artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jepx-intraday-${{ env.TARGET_DATE_SLUG }}
+          path: |
+            csv/intraday_${{ env.FINANCIAL_YEAR }}.csv
+          if-no-files-found: ignore
+
+      - name: Commit and push CSVs to repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "dlxiii"
+          git config --global user.email "tokyowangyulong@gmail.com"
+
+          git fetch origin
+          git checkout main
+
+          git add csv/
+          git commit -m "Auto commit JEPX intraday CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
+          git push origin main
+
+      - name: Send notification email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "OpenDenki_Data: JEPX Intraday Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
+          to: opendenki_data@googlegroups.com
+          from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
+          body: |
+            JEPX intraday data scraping job for ${{ env.TARGET_DATE_SLUG }} has completed successfully.
+
+            Files have been:
+            - Saved in the repository under csv/
+            - Uploaded to GitHub Actions Artifacts
+            - Committed back to the repository
+
+            📎 View workflow logs:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
