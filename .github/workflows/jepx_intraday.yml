@@ -31,7 +31,7 @@ jobs:
         id: jst_date
         run: |
           TZ=Asia/Tokyo
-          TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+          TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo" +1 day')
 
           TARGET_DATE_SLUG=${TARGET_DATE////-}
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
