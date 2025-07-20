@@ -1,3 +1,4 @@
+
 name: OpenDenki_Data JEPX Intraday data
 
 on:
@@ -25,36 +26,36 @@ jobs:
         run: |
           pip install -r requirements.txt
           playwright install --with-deps
-          
+
       - name: Calculate JST target date
         id: jst_date
-      
         run: |
-          TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+          TZ=Asia/Tokyo
+          HOUR=$(date +'%H' --date='TZ="Asia/Tokyo"')
+          MINUTE=$(date +'%M' --date='TZ="Asia/Tokyo"')
+          if [ "$HOUR" -lt 10 ] || { [ "$HOUR" -eq 10 ] && [ "$MINUTE" -lt 30 ]; }; then
+            TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+          else
+            TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+          fi
+
           TARGET_DATE_SLUG=${TARGET_DATE////-}
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
-          MONTH=$(echo $TARGET_DATE | cut -d'/' -f2)
-          if [ "$MONTH" -lt 4 ]; then
-            FINANCIAL_YEAR=$((TARGET_YEAR - 1))
-          else
-            FINANCIAL_YEAR=$TARGET_YEAR
-          fi
 
           echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
           echo "TARGET_DATE_SLUG=$TARGET_DATE_SLUG" >> "$GITHUB_ENV"
           echo "TARGET_YEAR=$TARGET_YEAR" >> "$GITHUB_ENV"
-          echo "FINANCIAL_YEAR=$FINANCIAL_YEAR" >> "$GITHUB_ENV"
-          echo "Target date: $TARGET_DATE (slug: $TARGET_DATE_SLUG, FY: $FINANCIAL_YEAR)"
-        - name: Run intraday scraper
-          run: python run_jepx_intraday.py "$TARGET_DATE"
-
+          echo "Target date: $TARGET_DATE (slug: $TARGET_DATE_SLUG)"
+      
+      - name: Run intraday scraper
+        run: python run_jepx_intraday.py "$TARGET_DATE"
 
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jepx-intraday-${{ env.TARGET_DATE_SLUG }}
+          name: jepx-${{ env.TARGET_DATE_SLUG }}
           path: |
-            csv/intraday_${{ env.FINANCIAL_YEAR }}.csv
+            csv/intraday_${{ env.TARGET_YEAR }}.csv
           if-no-files-found: ignore
 
       - name: Commit and push CSVs to repo
@@ -68,7 +69,7 @@ jobs:
           git checkout main
 
           git add csv/
-          git commit -m "Auto commit JEPX intraday CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
+          git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
           git push origin main
 
       - name: Send notification email
@@ -82,7 +83,7 @@ jobs:
           to: opendenki_data@googlegroups.com
           from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
           body: |
-            JEPX intraday data scraping job for ${{ env.TARGET_DATE_SLUG }} has completed successfully.
+            JEPX data scraping job for ${{ env.TARGET_DATE_SLUG }} has completed successfully.
 
             Files have been:
             - Saved in the repository under csv/
