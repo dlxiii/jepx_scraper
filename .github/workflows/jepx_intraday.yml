@@ -30,8 +30,7 @@ jobs:
       - name: Calculate JST target date
         id: jst_date
         run: |
-          TZ=Asia/Tokyo
-          TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo" +1 day')
+          TARGET_DATE=$(TZ=Asia/Tokyo date +'%Y/%m/%d')
 
           TARGET_DATE_SLUG=${TARGET_DATE////-}
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
