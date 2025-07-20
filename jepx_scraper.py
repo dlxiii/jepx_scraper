@@ -94,7 +94,8 @@ class JEPX:
                     print(f"Warning: default spot page layout check failed: {e}")
         elif item.lower() in {"bid_curves", "virtualprice"}:
             self.page.goto(f"{self.base_url}electricpower/market-data/spot/{item}.html")
-            print(f"Info: Skipping layout assertions for item: {item}")
+        elif item.lower() in {"intraday"}:
+            self.page.goto(f"{self.base_url}electricpower/market-data/{item}/")
         else:
             print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
@@ -113,6 +114,14 @@ class JEPX:
                 self.page.click("button.dl-button[data-dl='virtualprice']")
             except Exception as e:
                 print(f"Failed to operate virtualprice modal: {e}")
+            return
+
+        elif item.lower() == "intraday":
+            try:
+                # Click "データダウンロード" button
+                self.page.click("button.dl-button[data-dl='intraday']")
+            except Exception as e:
+                print(f"Failed to operate intraday modal: {e}")
             return
 
         # Normal date selection (skip if spot_summary or virtualprice)
@@ -269,6 +278,37 @@ class JEPX:
             print(f"Failed to extract virtualprice data: {e}")
             return None
 
+    def intraday(self, date: str, debug=False):
+        """
+        Navigate to JEPX intraday price page, set a specific date,
+        extract intraday price, and save CSV using financial year logic.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            str: Path to the saved CSV file.
+        """
+        from datetime import datetime
+
+        self._navigate_spot_page(date, debug, accept_downloads=False, item="intraday")
+        dt = datetime.strptime(date, "%Y/%m/%d")
+        if dt.month >= 4:
+            finial_year = dt.year
+        else:
+            finial_year = dt.year - 1
+        spot_path = os.path.join("csv", f"intraday_{finial_year}.csv")
+
+        try:
+            self._download_csv("intraday", str(finial_year), spot_path, overwrite=True)
+            print(f"Saved intraday CSV: {spot_path}")
+            return spot_path
+
+        except Exception as e:
+            print(f"Failed to extract intraday data: {e}")
+            return None
+
     def open_session(self, debug=False):
         """
         Open browser session using Playwright and navigate to HJKS unit page.
@@ -312,11 +352,13 @@ if __name__ == '__main__':
 
     # Run scraper
     jepx = JEPX()
-    jepx.spot_curve(date=target_date, debug=True)
-    jepx.spot_summary(date=target_date, debug=True)
-    jepx.spot_virtual_price(date=target_date, debug=True)
+    # jepx.spot_curve(date=target_date, debug=True)
+    # jepx.spot_summary(date=target_date, debug=True)
+    # jepx.spot_virtual_price(date=target_date, debug=True)
+    # jepx.intraday(date=target_date, debug=True)
     # jepx.spot_summary(date='2005/07/20', debug=True)
-    # jepx.spot_virtual_price(date='2019/07/20', debug=True)
+    # jepx.spot_virtual_price(date='2025/07/20', debug=True)
+    jepx.intraday(date='2016/07/20', debug=True)
     jepx.close_session()
 
     print()
