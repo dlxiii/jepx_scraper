@@ -52,6 +52,9 @@ jobs:
       - name: Run spot summary scraper
         run: python run_jepx_summary.py "$TARGET_DATE"
 
+      - name: Run spot virtual price scraper
+        run: python run_jepx_virtual_price.py "$TARGET_DATE"
+
       - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -60,6 +63,8 @@ jobs:
             csv/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv
             csv/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv
             csv/spot_summary_${{ env.TARGET_YEAR }}.csv
+            csv/virtualprice_${{ env.TARGET_YEAR }}.csv
+            csv/virtualprice_diff_${{ env.TARGET_YEAR }}.csv
           if-no-files-found: ignore
 
       - name: Commit and push CSVs to repo
