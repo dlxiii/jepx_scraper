@@ -36,8 +36,8 @@ jobs:
           echo "TARGET_DATE_SLUG=$TARGET_DATE_SLUG" >> "$GITHUB_ENV"
           echo "TARGET_YEAR=$TARGET_YEAR" >> "$GITHUB_ENV"
           echo "Target date: $TARGET_DATE (slug: $TARGET_DATE_SLUG)"
-      
-      - name: Run intraday scraper
+
+      - name: Run transmission right scraper
         run: python run_jepx_transmission_rights.py "$TARGET_DATE"
 
       - name: Upload CSV artifacts
