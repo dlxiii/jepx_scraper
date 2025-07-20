@@ -30,12 +30,12 @@ jobs:
         id: jst_date
         run: |
           TZ=Asia/Tokyo
-          HOUR=$(date +'%H' --date='TZ="Asia/Tokyo"')
-          MINUTE=$(date +'%M' --date='TZ="Asia/Tokyo"')
+          HOUR=$(TZ=Asia/Tokyo date +'%H')
+          MINUTE=$(TZ=Asia/Tokyo date +'%M')
           if [ "$HOUR" -lt 10 ] || { [ "$HOUR" -eq 10 ] && [ "$MINUTE" -lt 30 ]; }; then
-            TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo"')
+            TARGET_DATE=$(TZ=Asia/Tokyo date +'%Y/%m/%d')
           else
-            TARGET_DATE=$(date +'%Y/%m/%d' --date='TZ="Asia/Tokyo" +1 day')
+            TARGET_DATE=$(TZ=Asia/Tokyo date -d '1 day' +'%Y/%m/%d')
           fi
 
           TARGET_DATE_SLUG=${TARGET_DATE////-}
