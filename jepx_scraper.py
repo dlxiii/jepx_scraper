@@ -98,33 +98,24 @@ class JEPX:
         else:
             print(f"Warning: Unrecognized item '{item}', skipping default checks.")
 
-        # Handle spot_summary separately — no calendar logic
+        # Handle spot_summary and virtual price separately — no calendar logic
         if item.lower() == "spot_summary":
             try:
                 # Click "データダウンロード" button
                 self.page.click("button.dl-button[data-dl='spot_summary']")
-                self.page.wait_for_timeout(1000)
-
-                # Wait for modal to appear
-                self.page.wait_for_selector("#modal-box--spot_summary", timeout=3000)
-
-                # Select correct financial year
-                finial_year = year if dt.month >= 4 else year - 1
-                year_option_value = f"spot_summary_{finial_year}.csv"
-
-                # Select the year from dropdown
-                self.page.select_option("#dl-select--spot_summary", value=year_option_value)
-                self.page.wait_for_timeout(500)
-
-                # Click the download button in modal
-                self.page.click("#modal-box--spot_summary button.dl-button")
-                print(f"Triggered download for spot_summary_{finial_year}.csv")
-
             except Exception as e:
                 print(f"Failed to operate spot_summary modal: {e}")
             return
 
-        # Normal date selection (skip if spot_summary)
+        elif item.lower() == "virtualprice":
+            try:
+                # Click "データダウンロード" button
+                self.page.click("button.dl-button[data-dl='virtualprice']")
+            except Exception as e:
+                print(f"Failed to operate virtualprice modal: {e}")
+            return
+
+        # Normal date selection (skip if spot_summary or virtualprice)
         try:
             self.page.click("#button--calender-show")
             self.page.select_option(".ui-datepicker-year", str(year))
@@ -245,6 +236,39 @@ class JEPX:
         except Exception as e:
             print(f"Failed to extract amount table: {e}")
 
+    def spot_virtual_price(self, date: str, debug=False):
+        """
+        Navigate to JEPX spot virtual price page, set a specific date,
+        extract virtual price, and save CSV using financial year logic.
+
+        Args:
+            date (str): Date in "YYYY/MM/DD" format.
+            debug (bool): If True, browser opens visibly.
+
+        Returns:
+            str: Path to the saved CSV file.
+        """
+        from datetime import datetime
+
+        self._navigate_spot_page(date, debug, accept_downloads=False, item="virtualprice")
+        dt = datetime.strptime(date, "%Y/%m/%d")
+        if dt.month >= 4:
+            finial_year = dt.year
+        else:
+            finial_year = dt.year - 1
+        spot_path_1 = os.path.join("csv", f"virtualprice_{finial_year}.csv")
+        spot_path_2 = os.path.join("csv", f"virtualprice_diff_{finial_year}.csv")
+
+        try:
+            self._download_csv("virtualprice", str(finial_year), spot_path_1, overwrite=True)
+            self._download_csv("virtualprice", str(finial_year), spot_path_2, overwrite=True)
+            print(f"Saved virtualprice CSV: {spot_path_1}, {spot_path_2}")
+            return spot_path_1, spot_path_2
+
+        except Exception as e:
+            print(f"Failed to extract virtualprice data: {e}")
+            return None
+
     def open_session(self, debug=False):
         """
         Open browser session using Playwright and navigate to HJKS unit page.
@@ -288,8 +312,11 @@ if __name__ == '__main__':
 
     # Run scraper
     jepx = JEPX()
-    jepx.spot_curve(date=target_date, debug=True)
-    jepx.spot_summary(date=target_date, debug=True)
+    # jepx.spot_curve(date=target_date, debug=True)
+    # jepx.spot_summary(date=target_date, debug=True)
+    # jepx.spot_virtual_price(date=target_date, debug=True)
+    jepx.spot_summary(date='2005/07/20', debug=True)
+    # jepx.spot_virtual_price(date='2019/07/20', debug=True)
     jepx.close_session()
 
     print()
