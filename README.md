@@ -1,13 +1,14 @@
 # JEPX Spot Market Scraper
 
 This repository provides utilities for downloading daily spot market data from the [Japan Electric Power Exchange](https://www.jepx.jp/).  
-It relies on Playwright to automate the JEPX website and retrieve CSV files such as bid curves, splitting area results and yearly summaries.
+It relies on Playwright to automate the JEPX website and retrieve CSV files such as bid curves, splitting area results, yearly summaries and virtual price series.
 
 ## Features
 
 - Python API via the `JEPX` class defined in `jepx_scraper.py`.
-- Command line helpers: `run_jepx_curve.py` and `run_jepx_summary.py`.
-- Data stored under `csv/<YEAR>/` with annual summary files in the top `csv/` folder.
+- Command line helpers: `run_jepx_curve.py`, `run_jepx_summary.py` and
+  `run_jepx_virtual_price.py`.
+- Data stored under `csv/<YEAR>/` with annual summary and virtual price files in the top `csv/` folder.
 - GitHub Actions workflow for scheduled scraping and artifact upload.
 
 ## Requirements
@@ -38,7 +39,14 @@ Download the annual summary for the same date (the scraper picks the correct fin
 python run_jepx_summary.py 2025/04/24
 ```
 
+Download the virtual price for the same date (also using the appropriate financial year):
+
+```bash
+python run_jepx_virtual_price.py 2025/04/24
+```
+
 All CSV files will be written to `csv/<YEAR>/`. Annual summaries are named `csv/spot_summary_<YEAR>.csv`.
+Virtual price data is saved as `csv/virtualprice_<YEAR>.csv` and `csv/virtualprice_diff_<YEAR>.csv`.
 
 You can also use the `JEPX` class directly:
 
@@ -51,6 +59,8 @@ jepx.close_session()
 ```
 
 `spot_table` returns pandas DataFrames with 30‑minute spot price and volume tables.
+The same `JEPX` instance also exposes `spot_curve`, `spot_summary` and
+`spot_virtual_price` for downloading CSV files.
 
 ## Repository data
 
