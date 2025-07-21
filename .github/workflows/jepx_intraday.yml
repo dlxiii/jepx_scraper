@@ -29,11 +29,16 @@ jobs:
       - name: Calculate JST target date
         id: jst_date
         run: |
+          NOW_UTC=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          NOW_JST=$(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')
+          
           TARGET_DATE=$(TZ=Asia/Tokyo date +'%Y/%m/%d')
 
-          TARGET_DATE_SLUG=${TARGET_DATE////-}
+          TARGET_DATE_SLUG=${TARGET_DATE//\//}  # YYYYMMDD
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
-
+          
+          echo "Now (UTC): $NOW_UTC"
+          echo "Now (JST): $NOW_JST"
           echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
           echo "TARGET_DATE_SLUG=$TARGET_DATE_SLUG" >> "$GITHUB_ENV"
           echo "TARGET_YEAR=$TARGET_YEAR" >> "$GITHUB_ENV"
