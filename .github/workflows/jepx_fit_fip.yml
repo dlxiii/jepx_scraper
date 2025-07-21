@@ -2,7 +2,7 @@ name: OpenDenki_Data JEPX FIT FIP data
 
 on:
   schedule:
-    - cron: '30 14 * * *'  # JST 23：30 every day
+    - cron: '0 14 * * *'  # JST 23：00 every day
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,9 @@ jobs:
       - name: Calculate JST target date
         id: jst_date
         run: |
+          NOW_UTC=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          NOW_JST=$(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')
+          
           TARGET_DATE=$(TZ=Asia/Tokyo date +'%Y/%m/%d')
 
           TARGET_DATE_SLUG=${TARGET_DATE////-}
@@ -64,6 +67,22 @@ jobs:
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
           git push origin main
 
+      - name: Commit and push data to public repo opendenki/jepx
+        env:
+          TARGET_PAT: ${{ secrets.TARGET_REPO_PAT }}
+        run: |
+          git config --global user.name "OpenDenki Sync Bot"
+          git config --global user.email "bot@opendenki.com"
+
+          git clone https://x-access-token:${TARGET_PAT}@github.com/opendenki/jepx.git
+          cd jepx
+
+          cp ../csv/fit_fip_${{ env.TARGET_YEAR }}.csv .
+
+          git add .
+          git commit -m "Auto sync JEPX data for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
+          git push
+
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
@@ -80,7 +99,13 @@ jobs:
             Files have been:
             - Saved in the repository under csv/
             - Uploaded to GitHub Actions Artifacts
-            - Committed back to the repository
+            - Committed back to the manager's repository
+            - Pushed to public repo [opendenki/jepx](https://github.com/opendenki/jepx)
+
+            🌐 Public access via jsDelivr CDN:
+
+            fit_fip_${{ env.TARGET_YEAR }}.csv
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/fit_fip_${{ env.TARGET_YEAR }}.csv
 
             📎 View workflow logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
