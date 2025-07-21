@@ -34,7 +34,7 @@ jobs:
           
           TARGET_DATE=$(TZ=Asia/Tokyo date +'%Y/%m/%d')
 
-          TARGET_DATE_SLUG=${TARGET_DATE////-}
+          TARGET_DATE_SLUG=${TARGET_DATE//\//}  # YYYYMMDD
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
 
           echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
