@@ -38,7 +38,7 @@ jobs:
             TARGET_DATE=$(TZ=Asia/Tokyo date -d '1 day' +'%Y/%m/%d')
           fi
 
-          TARGET_DATE_SLUG=$(echo $TARGET_DATE | sed 's/\/\//g' | sed 's/\///g')  # YYYYMMDD
+          TARGET_DATE_SLUG=${TARGET_DATE//\//}  # YYYYMMDD
           TARGET_YEAR=$(echo $TARGET_DATE | cut -d'/' -f1)
 
           echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
