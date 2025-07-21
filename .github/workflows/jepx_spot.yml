@@ -81,6 +81,28 @@ jobs:
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
           git push origin main
 
+      - name: Commit and push data to public repo opendenki/jepx
+        env:
+          TARGET_PAT: ${{ secrets.TARGET_REPO_PAT }}
+        run: |
+          git config --global user.name "OpenDenki Sync Bot"
+          git config --global user.email "bot@opendenki.com"
+
+          git clone https://x-access-token:${TARGET_PAT}@github.com/opendenki/jepx.git
+          cd jepx
+
+          mkdir -p ${{ env.TARGET_YEAR }}
+
+          cp ../csv/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv ${{ env.TARGET_YEAR }}/
+          cp ../csv/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv ${{ env.TARGET_YEAR }}/
+          cp ../csv/spot_summary_${{ env.TARGET_YEAR }}.csv .
+          cp ../csv/virtualprice_${{ env.TARGET_YEAR }}.csv .
+          cp ../csv/virtualprice_diff_${{ env.TARGET_YEAR }}.csv .
+
+          git add .
+          git commit -m "Auto sync JEPX data for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
+          git push
+
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
