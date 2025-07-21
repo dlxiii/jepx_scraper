@@ -87,7 +87,7 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "OpenDenki_Data: JEPX Spot Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
+          subject: "OpenDenki_Data: JEPX Intraday Data Scrape for ${{ env.TARGET_DATE_SLUG }} completed"
           to: opendenki_data@googlegroups.com
           from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
           body: |
@@ -102,7 +102,7 @@ jobs:
             🌐 Public access via jsDelivr CDN:
 
             intraday_${{ env.TARGET_YEAR }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/intraday_${{ env.TARGET_YEAR }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/intraday_${{ env.TARGET_YEAR }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/intraday_${{ env.TARGET_YEAR }}.csv
 
             📎 View workflow logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
