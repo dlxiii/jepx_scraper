@@ -125,19 +125,19 @@ jobs:
             🌐 Public access via jsDelivr CDN:
 
             spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/${{ env.TARGET_YEAR }}/spot_bid_curves_${{ env.TARGET_DATE_SLUG }}.csv
 
             spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/${{ env.TARGET_YEAR }}/spot_splitting_areas_${{ env.TARGET_DATE_SLUG }}.csv
 
             spot_summary_${{ env.TARGET_YEAR }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/spot_summary_${{ env.TARGET_YEAR }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/spot_summary_${{ env.TARGET_YEAR }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/spot_summary_${{ env.TARGET_YEAR }}.csv
 
             virtualprice_${{ env.TARGET_YEAR }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/virtualprice_${{ env.TARGET_YEAR }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/virtualprice_${{ env.TARGET_YEAR }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/virtualprice_${{ env.TARGET_YEAR }}.csv
 
             virtualprice_diff_${{ env.TARGET_YEAR }}.csv
-            [https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/virtualprice_diff_${{ env.TARGET_YEAR }}.csv](https://cdn.jsdelivr.net/gh/opendenki/jepx@main/jepx/virtualprice_diff_${{ env.TARGET_YEAR }}.csv)
+            https://cdn.jsdelivr.net/gh/opendenki/jepx@main/virtualprice_diff_${{ env.TARGET_YEAR }}.csv
 
             📎 View workflow logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
