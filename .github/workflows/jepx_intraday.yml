@@ -2,7 +2,7 @@ name: OpenDenki_Data JEPX Intraday data
 
 on:
   schedule:
-    - cron: '30 */6 * * *'  # every 6 hours
+    - cron: '30 14 * * *'
   workflow_dispatch:
 
 permissions:
