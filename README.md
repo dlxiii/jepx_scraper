@@ -1,5 +1,7 @@
 # JEPX Spot Market Scraper
 
+[![OpenDenki_Data JEPX Spot data](https://github.com/dlxiii/jepx_scraper/actions/workflows/jepx_spot.yml/badge.svg?branch=main)](https://github.com/dlxiii/jepx_scraper/actions/workflows/jepx_spot.yml)
+
 This repository provides utilities for downloading daily spot market data from the [Japan Electric Power Exchange](https://www.jepx.jp/).  
 It relies on Playwright to automate the JEPX website and retrieve CSV files such as bid curves, splitting area results, yearly summaries and virtual price series.
 
@@ -73,6 +75,8 @@ The workflow file `.github/workflows/jepx.yml` runs every day at 10:30 JST, exec
 ## Windows batch script
 
 `batch_scraper.bat` loops over a date range and calls `run_jepx_curve.py` for each day. Adjust `START_DATE` and `END_DATE` before running if you want to backfill data on Windows.
+
+This project is now considered complete and ready for general use.
 
 ---
 Feel free to open issues or pull requests for improvements.
