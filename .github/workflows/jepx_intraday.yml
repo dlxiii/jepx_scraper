@@ -14,12 +14,27 @@ jobs:
     env:
       PYTHONUNBUFFERED: '1'
     steps:
-      - uses: actions/checkout@v4
+      - name: Sparse Checkout (excluding csv/)
+        run: |
+          git init
+          git remote add origin https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          git config core.sparseCheckout true
+          echo "/*" > .git/info/sparse-checkout
+          echo "!csv/" >> .git/info/sparse-checkout
+          git pull origin main
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
 
       - name: Install dependencies
         run: |
@@ -55,19 +70,18 @@ jobs:
             csv/intraday_${{ env.TARGET_YEAR }}.csv
           if-no-files-found: ignore
 
-      - name: Commit and push CSVs to repo
+      - name: Commit and push new CSVs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "dlxiii"
           git config --global user.email "tokyowangyulong@gmail.com"
 
-          git fetch origin
-          git checkout main
-
-          git add csv/
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+      
+          git add --sparse csv/
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
-          git push origin main
+          git push origin HEAD:main
 
       - name: Commit and push data to public repo opendenki/jepx
         env:
