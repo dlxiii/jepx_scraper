@@ -1,4 +1,4 @@
-name: OpenDenki_Data JEPX Intraday data test
+name: OpenDenki_Data JEPX Intraday data
 
 on:
   schedule:
