@@ -14,7 +14,14 @@ jobs:
     env:
       PYTHONUNBUFFERED: '1'
     steps:
-      - uses: actions/checkout@v4
+      - name: Sparse Checkout (excluding csv/)
+        run: |
+          git init
+          git remote add origin https://github.com/${{ github.repository }}
+          git config core.sparseCheckout true
+          echo "/*" > .git/info/sparse-checkout
+          echo "!csv/" >> .git/info/sparse-checkout
+          git pull origin main
 
       - name: Set up Python
         uses: actions/setup-python@v5
