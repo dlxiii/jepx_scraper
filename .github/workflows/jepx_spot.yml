@@ -85,6 +85,8 @@ jobs:
         run: |
           git config --global user.name "dlxiii"
           git config --global user.email "tokyowangyulong@gmail.com"
+
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
       
           git add --sparse csv/
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
