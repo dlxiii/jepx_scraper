@@ -14,14 +14,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: '1'
     steps:
-      - name: Sparse Checkout (excluding csv/)
-        run: |
-          git init
-          git remote add origin https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${{ github.repository }}
-          git config core.sparseCheckout true
-          echo "/*" > .git/info/sparse-checkout
-          echo "!csv/" >> .git/info/sparse-checkout
-          git pull origin main
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -77,11 +70,11 @@ jobs:
           git config --global user.name "dlxiii"
           git config --global user.email "tokyowangyulong@gmail.com"
 
-          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-      
-          git add --sparse csv/
+          git fetch origin
+          git checkout main
+          git add csv/
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
-          git push origin HEAD:main
+          git push origin main
 
       - name: Commit and push data to public repo opendenki/jepx
         env:
