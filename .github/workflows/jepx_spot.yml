@@ -86,10 +86,9 @@ jobs:
           git config --global user.name "dlxiii"
           git config --global user.email "tokyowangyulong@gmail.com"
       
-          git add csv/
+          git add --sparse csv/
           git commit -m "Auto commit JEPX CSV for ${{ env.TARGET_DATE_SLUG }}" || echo "No changes to commit"
           git push origin HEAD:main
-
 
       - name: Commit and push data to public repo opendenki/jepx
         env:
