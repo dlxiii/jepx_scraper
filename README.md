@@ -68,6 +68,19 @@ The same `JEPX` instance also exposes `spot_curve`, `spot_summary` and
 
 The `csv/` directory currently contains about 1.5 GB of historical data. If you plan to store more files, consider [Git LFS](https://git-lfs.github.com/) or another storage solution instead of keeping everything in Git.
 
+## Partial clone with sparse checkout
+
+If you only need the code and not the historical CSV files, you can enable sparse checkout to avoid downloading the `csv/` directory:
+
+```bash
+git config core.sparseCheckout true
+echo '/*' > .git/info/sparse-checkout
+echo '!csv/' >> .git/info/sparse-checkout
+git pull origin main     # use `master` if that is your default branch
+git read-tree -mu HEAD
+```
+
+These commands check out everything except `csv/`, which significantly reduces the download size.
 ## Automation with GitHub Actions
 
 The workflow file `.github/workflows/jepx.yml` runs every day at 10:30 JST, executes both scraper scripts and commits any new CSVs back to the repository. If you fork this project, enable GitHub Actions from the “Actions” tab to activate the schedule.
