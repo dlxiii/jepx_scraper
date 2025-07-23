@@ -74,8 +74,8 @@ If you only need the code and not the historical CSV files, you can enable spars
 
 ```bash
 git config core.sparseCheckout true
-echo '/*' > .git/info/sparse-checkout
-echo '!csv/' >> .git/info/sparse-checkout
+echo /* > .git/info/sparse-checkout
+echo !csv/ >> .git/info/sparse-checkout
 git pull origin main     # use `master` if that is your default branch
 git read-tree -mu HEAD
 ```
